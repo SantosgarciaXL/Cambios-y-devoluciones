@@ -2,13 +2,13 @@
 -- Compatible con SQL Server
 
 -- Crear base de datos si no existe
-IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'ecommerce_cambios_devoluciones')
-BEGIN
-    CREATE DATABASE ecommerce_cambios_devoluciones;
-END
-GO
+-- IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'Empresa_Ejemplo')
+-- BEGIN
+--     CREATE DATABASE Empresa_Ejemplo;
+-- END
+-- GO
 
-USE ecommerce_cambios_devoluciones;
+USE Empresa_Ejemplo;
 GO
 
 -- Tabla principal de solicitudes

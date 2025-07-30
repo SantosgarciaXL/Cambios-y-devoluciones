@@ -1,0 +1,19 @@
+[30-Jul-2025 09:47:55 America/Argentina/Buenos_Aires] Database connection error: Error de conexión: [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Error de inicio de sesión del usuario 'sa'.
+[30-Jul-2025 09:51:14 America/Argentina/Buenos_Aires] Database connection error: Error de conexión: [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Error de inicio de sesión del usuario 'sa'.
+[30-Jul-2025 09:51:17 America/Argentina/Buenos_Aires] Database connection error: Error de conexión: [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Error de inicio de sesión del usuario 'sa'.
+[30-Jul-2025 09:51:22 America/Argentina/Buenos_Aires] Database connection error: Error de conexión: [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Error de inicio de sesión del usuario 'sa'.
+[30-Jul-2025 09:51:31 America/Argentina/Buenos_Aires] Database connection error: Error de conexión: [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Error de inicio de sesión del usuario 'sa'.
+[30-Jul-2025 09:57:30 America/Argentina/Buenos_Aires] Database connection error: Error de conexión: [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Error de inicio de sesión del usuario 'sa'.
+[30-Jul-2025 09:57:37 America/Argentina/Buenos_Aires] Database connection error: Error de conexión: [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Error de inicio de sesión del usuario 'sa'.
+[30-Jul-2025 10:14:01 America/Argentina/Buenos_Aires] PHP Fatal error:  Uncaught Error: Call to a member function format() on string in C:\xampp\htdocs\ecommerce\cambios-devoluciones\test_connection.php:110
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\ecommerce\cambios-devoluciones\test_connection.php on line 110
+[30-Jul-2025 10:14:18 America/Argentina/Buenos_Aires] PHP Fatal error:  Uncaught Error: Call to a member function format() on string in C:\xampp\htdocs\ecommerce\cambios-devoluciones\test_connection.php:110
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\ecommerce\cambios-devoluciones\test_connection.php on line 110
+[30-Jul-2025 10:16:11 America/Argentina/Buenos_Aires] PHP Fatal error:  Uncaught Error: Call to a member function format() on string in C:\xampp\htdocs\ecommerce\cambios-devoluciones\test_connection.php:110
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\ecommerce\cambios-devoluciones\test_connection.php on line 110

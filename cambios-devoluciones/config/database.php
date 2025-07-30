@@ -27,20 +27,20 @@ class DatabaseConfig {
     
     private static function loadEnv() {
         $env = parse_ini_file(__DIR__ . '/../.env');
-        self::$host = $env['HOST_CENTRAL'] ?? 'localhost';
-        self::$database = $env['DATABASE_CENTRAL'] ?? 'ecommerce_db';
+        self::$host = $env['HOST_CENTRAL'] ?? 'SERVIDOR';
+        self::$database = $env['DATABASE_CENTRAL'] ?? 'Empresa_Ejemplo';
         self::$user = $env['USER'] ?? 'sa';
-        self::$password = $env['PASS'] ?? '';
+        self::$password = $env['PASS'] ?? 'Axoft1988';
         self::$charset = $env['CHARACTER'] ?? 'UTF-8';
     }
     
     private static function setDefaultConfig() {
-        self::$host = Config::get('database.host', 'localhost');
-        self::$database = Config::get('database.name', 'ecommerce_db');
-        self::$user = Config::get('database.user', 'sa');
-        self::$password = Config::get('database.password', '');
-        self::$charset = Config::get('database.charset', 'UTF-8');
-    }
+        self::$host = 'SERVIDOR';
+        self::$database = 'Empresa_Ejemplo';
+        self::$user = 'sa';
+        self::$password = 'Axoft1988';
+        self::$charset = 'UTF-8';
+}
     
     /**
      * Obtener conexión SQL Server

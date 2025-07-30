@@ -18,10 +18,10 @@ class Config {
         
         // Configuración de base de datos
         'database' => [
-            'host' => 'localhost',
-            'name' => 'ecommerce_cambios_devoluciones',
+            'host' => 'SERVIDOR',
+            'name' => 'Empresa_Ejemplo',
             'user' => 'sa',
-            'password' => '',
+            'password' => 'Axoft1988',
             'charset' => 'UTF-8',
             'port' => 1433
         ],

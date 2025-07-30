@@ -653,3 +653,16 @@ body {
         border: 1px solid #ddd;
     }
 }
+    .chart-card canvas {
+    max-width: 400px !important;
+    max-height: 200px !important;
+    width: 400px !important;
+    height: 200px !important;
+}
+
+    #chartEstados, #chartTendencia {
+    width: 400px !important;
+    height: 200px !important;
+    max-width: 400px !important;
+    max-height: 200px !important;
+}

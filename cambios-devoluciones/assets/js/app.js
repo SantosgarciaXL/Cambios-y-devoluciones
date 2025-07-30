@@ -426,6 +426,9 @@ class CambiosDevolucionesApp {
         try {
             Utils.mostrarLoading(true, 'Cargando datos...');
 
+            // Destruir gráficos existentes antes de cargar nuevos datos
+            this.destruirGraficos();
+
             // Cargar solicitudes y estadísticas en paralelo
             const [solicitudesResp, estadisticasResp] = await Promise.all([
                 apiClient.listarSolicitudes({}, 1, 100),
@@ -448,6 +451,41 @@ class CambiosDevolucionesApp {
             Utils.mostrarLoading(false);
         }
     }
+
+    /**
+     * Destruir gráficos existentes
+     */
+destruirGraficos() {
+    // Destruir instancias de Chart.js
+    if (this.charts.estados) {
+        this.charts.estados.destroy();
+        this.charts.estados = null;
+    }
+    if (this.charts.tendencia) {
+        this.charts.tendencia.destroy();
+        this.charts.tendencia = null;
+    }
+    
+    // Limpiar canvas manualmente
+    const canvasEstados = document.getElementById('chartEstados');
+    const canvasTendencia = document.getElementById('chartTendencia');
+    
+    if (canvasEstados) {
+        const ctx = canvasEstados.getContext('2d');
+        ctx.clearRect(0, 0, canvasEstados.width, canvasEstados.height);
+        // Restablecer tamaño
+        canvasEstados.style.width = '';
+        canvasEstados.style.height = '';
+    }
+    
+    if (canvasTendencia) {
+        const ctx = canvasTendencia.getContext('2d');
+        ctx.clearRect(0, 0, canvasTendencia.width, canvasTendencia.height);
+        // Restablecer tamaño
+        canvasTendencia.style.width = '';
+        canvasTendencia.style.height = '';
+    }
+}
 
     /**
      * Actualizar tabla de solicitudes
@@ -559,6 +597,9 @@ class CambiosDevolucionesApp {
      * Actualizar gráficos
      */
     actualizarGraficos(data) {
+        // Destruir gráficos existentes antes de crear nuevos
+        this.destruirGraficos();
+        
         this.crearGraficoEstados(data);
         this.crearGraficoTendencia(data);
     }
@@ -566,107 +607,110 @@ class CambiosDevolucionesApp {
     /**
      * Crear gráfico de estados
      */
-    crearGraficoEstados(data) {
-        const ctx = document.getElementById('chartEstados');
-        if (!ctx) return;
+crearGraficoEstados(data) {
+    const ctx = document.getElementById('chartEstados');
+    if (!ctx) return;
 
-        const estadisticas = data.resumen.ultimos_30_dias;
-        const labels = ['Aprobadas', 'Rechazadas', 'Pendientes'];
-        const valores = [
-            estadisticas.aprobadas || 0,
-            estadisticas.rechazadas || 0,
-            estadisticas.pendientes || 0
-        ];
+    // Asegurar que el canvas tenga dimensiones fijas
+    ctx.width = 400;
+    ctx.height = 200;
+    ctx.style.width = '400px';
+    ctx.style.height = '200px';
 
-        if (this.charts.estados) {
-            this.charts.estados.destroy();
-        }
+    const estadisticas = data.resumen.ultimos_30_dias;
+    const labels = ['Aprobadas', 'Rechazadas', 'Pendientes'];
+    const valores = [
+        estadisticas.aprobadas || 0,
+        estadisticas.rechazadas || 0,
+        estadisticas.pendientes || 0
+    ];
 
-        this.charts.estados = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: valores,
-                    backgroundColor: Utils.obtenerColoresGrafico('estados'),
-                    borderWidth: 2,
-                    borderColor: '#fff'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 15,
-                            usePointStyle: true
-                        }
+    this.charts.estados = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: valores,
+                backgroundColor: Utils.obtenerColoresGrafico('estados'),
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: false, // CAMBIO CLAVE
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true
                     }
                 }
             }
-        });
-    }
+        }
+    });
+}
 
     /**
      * Crear gráfico de tendencia
      */
     crearGraficoTendencia(data) {
-        const ctx = document.getElementById('chartTendencia');
-        if (!ctx || !data.tendencias) return;
+    const ctx = document.getElementById('chartTendencia');
+    if (!ctx || !data.tendencias) return;
 
-        const labels = data.tendencias.map(t => Utils.formatearFecha(t.fecha));
-        const valores = data.tendencias.map(t => t.cantidad);
+    // Asegurar que el canvas tenga dimensiones fijas
+    ctx.width = 400;
+    ctx.height = 200;
+    ctx.style.width = '400px';
+    ctx.style.height = '200px';
 
-        if (this.charts.tendencia) {
-            this.charts.tendencia.destroy();
-        }
+    const labels = data.tendencias.map(t => Utils.formatearFecha(t.fecha));
+    const valores = data.tendencias.map(t => t.cantidad);
 
-        this.charts.tendencia = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Solicitudes por Día',
-                    data: valores,
-                    borderColor: Utils.obtenerColoresGrafico('tendencia'),
-                    backgroundColor: Utils.obtenerColoresGrafico('tendencia') + '20',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
-                    pointBackgroundColor: Utils.obtenerColoresGrafico('tendencia'),
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(0,0,0,0.1)'
-                        }
-                    },
-                    x: {
-                        grid: {
-                            color: 'rgba(0,0,0,0.1)'
-                        }
+    this.charts.tendencia = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Solicitudes por Día',
+                data: valores,
+                borderColor: Utils.obtenerColoresGrafico('tendencia'),
+                backgroundColor: Utils.obtenerColoresGrafico('tendencia') + '20',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: Utils.obtenerColoresGrafico('tendencia'),
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 6
+            }]
+        },
+        options: {
+            responsive: false, // CAMBIO CLAVE
+            maintainAspectRatio: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
                     }
                 },
-                plugins: {
-                    legend: {
-                        display: false
+                x: {
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
                     }
                 }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
             }
-        });
-    }
+        }
+    });
 }
-
+}
 // Funciones globales para eventos desde HTML
 window.verDetalle = async function(id) {
     try {

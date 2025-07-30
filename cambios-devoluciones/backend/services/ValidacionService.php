@@ -15,6 +15,49 @@ class ValidacionService {
     }
     
     /**
+     * Validar datos de entrada de una solicitud
+     */
+    public function validarSolicitud($datos) {
+        $errores = [];
+        
+        // Campos requeridos
+        $camposRequeridos = ['fecha_recepcion_producto', 'medio_compra', 'motivo_solicitud'];
+        foreach ($camposRequeridos as $campo) {
+            if (empty($datos[$campo])) {
+                $errores[] = "El campo {$campo} es requerido";
+            }
+        }
+        
+        // Validar fecha de recepción
+        if (!empty($datos['fecha_recepcion_producto'])) {
+            $fecha = DateTime::createFromFormat('Y-m-d', $datos['fecha_recepcion_producto']);
+            if (!$fecha || $fecha->format('Y-m-d') !== $datos['fecha_recepcion_producto']) {
+                $errores[] = "Formato de fecha inválido en fecha_recepcion_producto";
+            } elseif ($fecha > new DateTime()) {
+                $errores[] = "La fecha de recepción no puede ser futura";
+            }
+        }
+        
+        // Validar enums
+        $mediosValidos = ['online', 'presencial'];
+        if (!empty($datos['medio_compra']) && !in_array($datos['medio_compra'], $mediosValidos)) {
+            $errores[] = "Medio de compra inválido";
+        }
+        
+        $motivosValidos = ['cambio', 'devolucion', 'falla'];
+        if (!empty($datos['motivo_solicitud']) && !in_array($datos['motivo_solicitud'], $motivosValidos)) {
+            $errores[] = "Motivo de solicitud inválido";
+        }
+        
+        // Validar email si está presente
+        if (!empty($datos['cliente_email']) && !filter_var($datos['cliente_email'], FILTER_VALIDATE_EMAIL)) {
+            $errores[] = "Email inválido";
+        }
+        
+        return $errores;
+    }
+    
+    /**
      * Evaluar solicitud según las reglas de negocio
      */
     public function evaluarSolicitud($datos) {
@@ -278,6 +321,214 @@ class ValidacionService {
      * Cargar reglas de negocio desde configuración
      */
     private function cargarReglasNegocio() {
+        // Valores por defecto basados en la Ley 24.240
         $this->reglasNegocio = [
-            'devolucion_online_dias' => Config::get('business_rules.devolucion_online_dias', 10),
-            'cambio_online_dias' => Config::get('business_rules.cambio_online_dias', 30),
+            'devolucion_online_dias' => 10,      // Artículo 34 - Derecho de arrepentimiento
+            'cambio_online_dias' => 30,          // Política comercial
+            'cambio_presencial_dias' => 15,      // Política comercial
+            'garantia_falla_dias' => 365,        // Artículo 11 - Garantía legal
+            'require_tags_for_return' => true,   // Política comercial
+            'require_unused_for_return' => true  // Política comercial
+        ];
+        
+        // Intentar cargar desde configuración si está disponible
+        try {
+            if (class_exists('Config')) {
+                $this->reglasNegocio['devolucion_online_dias'] = Config::get('business_rules.devolucion_online_dias', 10);
+                $this->reglasNegocio['cambio_online_dias'] = Config::get('business_rules.cambio_online_dias', 30);
+                $this->reglasNegocio['cambio_presencial_dias'] = Config::get('business_rules.cambio_presencial_dias', 15);
+                $this->reglasNegocio['garantia_falla_dias'] = Config::get('business_rules.garantia_falla_dias', 365);
+                $this->reglasNegocio['require_tags_for_return'] = Config::get('business_rules.require_tags_for_return', true);
+                $this->reglasNegocio['require_unused_for_return'] = Config::get('business_rules.require_unused_for_return', true);
+            }
+        } catch (Exception $e) {
+            // Usar valores por defecto si hay error
+            error_log("Error cargando configuración en ValidacionService: " . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Obtener reglas aplicadas para un caso específico
+     */
+    private function obtenerReglasAplicadas($motivo, $medioCompra) {
+        $reglas = [];
+        
+        switch ($motivo) {
+            case 'falla':
+                $reglas[] = [
+                    'descripcion' => 'Garantía legal por falla',
+                    'dias' => $this->reglasNegocio['garantia_falla_dias'],
+                    'fundamento' => 'Artículo 11, Ley 24.240'
+                ];
+                break;
+                
+            case 'devolucion':
+                if ($medioCompra === 'online') {
+                    $reglas[] = [
+                        'descripcion' => 'Devolución para compras online',
+                        'dias' => $this->reglasNegocio['devolucion_online_dias'],
+                        'fundamento' => 'Artículo 34, Ley 24.240'
+                    ];
+                }
+                break;
+                
+            case 'cambio':
+                $dias = ($medioCompra === 'online') 
+                    ? $this->reglasNegocio['cambio_online_dias']
+                    : $this->reglasNegocio['cambio_presencial_dias'];
+                    
+                $reglas[] = [
+                    'descripcion' => "Cambio para compras {$medioCompra}",
+                    'dias' => $dias,
+                    'fundamento' => 'Política comercial'
+                ];
+                break;
+        }
+        
+        return $reglas;
+    }
+    
+    /**
+     * Obtener información de plazos vigentes
+     */
+    public function obtenerInformacionPlazos() {
+        return [
+            'devolucion_online' => [
+                'dias' => $this->reglasNegocio['devolucion_online_dias'],
+                'descripcion' => 'Plazo para devolución en compras online',
+                'fundamento' => 'Artículo 34, Ley 24.240'
+            ],
+            'cambio_online' => [
+                'dias' => $this->reglasNegocio['cambio_online_dias'],
+                'descripcion' => 'Plazo para cambio en compras online',
+                'fundamento' => 'Política comercial'
+            ],
+            'cambio_presencial' => [
+                'dias' => $this->reglasNegocio['cambio_presencial_dias'],
+                'descripcion' => 'Plazo para cambio en compras presenciales',
+                'fundamento' => 'Política comercial'
+            ],
+            'garantia_falla' => [
+                'dias' => $this->reglasNegocio['garantia_falla_dias'],
+                'descripcion' => 'Garantía legal por falla o defecto',
+                'fundamento' => 'Artículo 11, Ley 24.240'
+            ]
+        ];
+    }
+    
+    /**
+     * Generar reporte detallado de evaluación
+     */
+    public function generarReporteEvaluacion($datos, $evaluacion) {
+        $fechaRecepcion = new DateTime($datos['fecha_recepcion_producto']);
+        $fechaActual = new DateTime();
+        
+        $reporte = [
+            'solicitud' => [
+                'fecha_evaluacion' => $fechaActual->format('Y-m-d H:i:s'),
+                'fecha_recepcion' => $fechaRecepcion->format('Y-m-d'),
+                'dias_transcurridos' => $evaluacion['dias_transcurridos'],
+                'medio_compra' => $datos['medio_compra'],
+                'motivo_solicitud' => $datos['motivo_solicitud'],
+                'producto_usado' => $datos['producto_usado'] ?? false,
+                'tiene_etiquetas' => $datos['tiene_etiquetas'] ?? true
+            ],
+            'evaluacion' => $evaluacion,
+            'reglas_negocio' => $this->reglasNegocio,
+            'normativa_aplicada' => $this->obtenerNormativaAplicada($datos['motivo_solicitud']),
+            'metadata' => [
+                'version_sistema' => '1.0.0',
+                'normativa_aplicada' => 'Ley 24.240 - Defensa del Consumidor',
+                'usuario_evaluacion' => $datos['usuario_creacion'] ?? 'Sistema'
+            ]
+        ];
+        
+        return $reporte;
+    }
+    
+    /**
+     * Obtener normativa legal aplicada
+     */
+    private function obtenerNormativaAplicada($motivo) {
+        $normativa = [
+            'ley_principal' => 'Ley 24.240 - Defensa del Consumidor',
+            'articulos_aplicables' => []
+        ];
+        
+        switch ($motivo) {
+            case 'falla':
+                $normativa['articulos_aplicables'] = [
+                    'Artículo 11' => 'Garantía legal - El proveedor debe garantizar el producto por vicios o defectos',
+                    'Artículo 12' => 'Plazo de garantía - Mínimo 3 meses para bienes muebles no consumibles'
+                ];
+                break;
+                
+            case 'devolucion':
+                $normativa['articulos_aplicables'] = [
+                    'Artículo 34' => 'Venta fuera del establecimiento - Derecho de arrepentimiento de 10 días',
+                    'Artículo 35' => 'Condiciones del derecho de arrepentimiento'
+                ];
+                break;
+                
+            case 'cambio':
+                $normativa['articulos_aplicables'] = [
+                    'Política Comercial' => 'Cambios por cortesía comercial según política de la empresa'
+                ];
+                break;
+        }
+        
+        return $normativa;
+    }
+    
+    /**
+     * Validar configuración del servicio
+     */
+    public function validarConfiguracion() {
+        $errores = [];
+        
+        // Verificar que las reglas tengan valores válidos
+        if ($this->reglasNegocio['devolucion_online_dias'] < 1 || $this->reglasNegocio['devolucion_online_dias'] > 365) {
+            $errores[] = "Días de devolución online fuera de rango válido (1-365)";
+        }
+        
+        if ($this->reglasNegocio['cambio_online_dias'] < 1 || $this->reglasNegocio['cambio_online_dias'] > 365) {
+            $errores[] = "Días de cambio online fuera de rango válido (1-365)";
+        }
+        
+        if ($this->reglasNegocio['cambio_presencial_dias'] < 1 || $this->reglasNegocio['cambio_presencial_dias'] > 365) {
+            $errores[] = "Días de cambio presencial fuera de rango válido (1-365)";
+        }
+        
+        if ($this->reglasNegocio['garantia_falla_dias'] < 90) {
+            $errores[] = "Garantía por falla menor al mínimo legal (90 días)";
+        }
+        
+        return [
+            'valido' => empty($errores),
+            'errores' => $errores,
+            'reglas_cargadas' => $this->reglasNegocio
+        ];
+    }
+    
+    /**
+     * Obtener estadísticas de evaluaciones (si se implementa logging)
+     */
+    public function obtenerEstadisticasEvaluaciones($fechaDesde = null, $fechaHasta = null) {
+        // Esta función podría implementarse para analizar patrones de evaluación
+        // Por ahora retorna estructura base
+        return [
+            'total_evaluaciones' => 0,
+            'por_motivo' => [
+                'cambio' => 0,
+                'devolucion' => 0,
+                'falla' => 0
+            ],
+            'por_resultado' => [
+                'permitidas' => 0,
+                'rechazadas' => 0
+            ],
+            'promedio_dias_solicitud' => 0
+        ];
+    }
+}
+?>
